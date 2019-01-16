@@ -161,7 +161,7 @@ class Drawer extends React.Component<DrawerProps & ConfigConsumerProps, IDrawerS
       return null;
     }
 
-    const headerClassName = title ? `${prefixCls}-header` : `${prefixCls}-header-no-title`;
+    const headerClassName = !!title ? `${prefixCls}-header` : `${prefixCls}-header-no-title`;
     return (
       <div className={headerClassName}>
         {title && <div className={`${prefixCls}-title`}>{title}</div>}

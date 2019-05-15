@@ -10,12 +10,17 @@ import { ConfigConsumer, ConfigConsumerProps } from '../config-provider';
 import Password from './Password';
 import Icon from '../icon';
 import { Omit, tuple } from '../_util/type';
+import warning from '../_util/warning';
 
 function fixControlledValue<T>(value: T) {
   if (typeof value === 'undefined' || value === null) {
     return '';
   }
   return value;
+}
+
+function hasPrefixSuffix(props: InputProps) {
+  return !!('prefix' in props || props.suffix || props.allowClear);
 }
 
 const InputSizes = tuple('small', 'default', 'large');
@@ -84,6 +89,21 @@ class Input extends React.Component<InputProps, any> {
     };
   }
 
+  getSnapshotBeforeUpdate(prevProps: InputProps) {
+    if (hasPrefixSuffix(prevProps) !== hasPrefixSuffix(this.props)) {
+      warning(
+        this.input !== document.activeElement,
+        'Input',
+        `When Input is focused, dynamic add or remove prefix / suffix will make it lose focus caused by dom structure change. Read more: https://ant.design/components/input/#FAQ`,
+      );
+    }
+    return null;
+  }
+
+  // Since polyfill `getSnapshotBeforeUpdate` need work with `componentDidUpdate`.
+  // We keep an empty function here.
+  componentDidUpdate() {}
+
   handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const { onPressEnter, onKeyDown } = this.props;
     if (e.keyCode === 13 && onPressEnter) {
@@ -122,9 +142,10 @@ class Input extends React.Component<InputProps, any> {
   setValue(
     value: string,
     e: React.ChangeEvent<HTMLInputElement> | React.MouseEvent<HTMLElement, MouseEvent>,
+    callback?: () => void,
   ) {
     if (!('value' in this.props)) {
-      this.setState({ value });
+      this.setState({ value }, callback);
     }
     const { onChange } = this.props;
     if (onChange) {
@@ -147,7 +168,9 @@ class Input extends React.Component<InputProps, any> {
   }
 
   handleReset = (e: React.MouseEvent<HTMLElement, MouseEvent>) => {
-    this.setValue('', e);
+    this.setValue('', e, () => {
+      this.focus();
+    });
   };
 
   handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -157,7 +180,7 @@ class Input extends React.Component<InputProps, any> {
   renderClearIcon(prefixCls: string) {
     const { allowClear } = this.props;
     const { value } = this.state;
-    if (!allowClear || value === undefined || value === '') {
+    if (!allowClear || value === undefined || value === null || value === '') {
       return null;
     }
     return (
@@ -185,38 +208,36 @@ class Input extends React.Component<InputProps, any> {
   }
 
   renderLabeledInput(prefixCls: string, children: React.ReactElement<any>) {
-    const props = this.props;
+    const { addonBefore, addonAfter, style, size, className } = this.props;
     // Not wrap when there is not addons
-    if (!props.addonBefore && !props.addonAfter) {
+    if (!addonBefore && !addonAfter) {
       return children;
     }
 
     const wrapperClassName = `${prefixCls}-group`;
     const addonClassName = `${wrapperClassName}-addon`;
-    const addonBefore = props.addonBefore ? (
-      <span className={addonClassName}>{props.addonBefore}</span>
+    const addonBeforeNode = addonBefore ? (
+      <span className={addonClassName}>{addonBefore}</span>
     ) : null;
-    const addonAfter = props.addonAfter ? (
-      <span className={addonClassName}>{props.addonAfter}</span>
-    ) : null;
+    const addonAfterNode = addonAfter ? <span className={addonClassName}>{addonAfter}</span> : null;
 
-    const className = classNames(`${prefixCls}-wrapper`, {
+    const mergedWrapperClassName = classNames(`${prefixCls}-wrapper`, {
       [wrapperClassName]: addonBefore || addonAfter,
     });
 
-    const groupClassName = classNames(`${prefixCls}-group-wrapper`, {
-      [`${prefixCls}-group-wrapper-sm`]: props.size === 'small',
-      [`${prefixCls}-group-wrapper-lg`]: props.size === 'large',
+    const mergedGroupClassName = classNames(className, `${prefixCls}-group-wrapper`, {
+      [`${prefixCls}-group-wrapper-sm`]: size === 'small',
+      [`${prefixCls}-group-wrapper-lg`]: size === 'large',
     });
 
     // Need another wrapper for changing display:table to display:inline-block
     // and put style prop in wrapper
     return (
-      <span className={groupClassName} style={props.style}>
-        <span className={className}>
-          {addonBefore}
+      <span className={mergedGroupClassName} style={style}>
+        <span className={mergedWrapperClassName}>
+          {addonBeforeNode}
           {React.cloneElement(children, { style: null })}
-          {addonAfter}
+          {addonAfterNode}
         </span>
       </span>
     );
@@ -226,7 +247,7 @@ class Input extends React.Component<InputProps, any> {
     const { props } = this;
     const suffix = this.renderSuffix(prefixCls);
 
-    if (!('prefix' in props) && !suffix) {
+    if (!hasPrefixSuffix(props)) {
       return children;
     }
 
@@ -251,7 +272,7 @@ class Input extends React.Component<InputProps, any> {
   }
 
   renderInput(prefixCls: string) {
-    const { className } = this.props;
+    const { className, addonBefore, addonAfter } = this.props;
     const { value } = this.state;
     // Fix https://fb.me/react-unknown-prop
     const otherProps = omit(this.props, [
@@ -273,7 +294,9 @@ class Input extends React.Component<InputProps, any> {
         {...otherProps}
         value={fixControlledValue(value)}
         onChange={this.handleChange}
-        className={classNames(this.getInputClassName(prefixCls), className)}
+        className={classNames(this.getInputClassName(prefixCls), {
+          [className!]: className && !addonBefore && !addonAfter,
+        })}
         onKeyDown={this.handleKeyDown}
         ref={this.saveInput}
       />,

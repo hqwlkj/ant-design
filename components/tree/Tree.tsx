@@ -4,7 +4,7 @@ import DirectoryTree from './DirectoryTree';
 import classNames from 'classnames';
 import Icon from '../icon';
 import { ConfigConsumer, ConfigConsumerProps } from '../config-provider';
-import animation from '../_util/openAnimation';
+import { collapseMotion } from '../_util/motion';
 
 export interface AntdTreeNodeAttribute {
   eventKey: string;
@@ -27,6 +27,7 @@ export interface AntdTreeNodeAttribute {
 }
 export interface AntTreeNodeProps {
   className?: string;
+  checkable?: boolean;
   disabled?: boolean;
   disableCheckbox?: boolean;
   title?: string | React.ReactNode;
@@ -128,7 +129,7 @@ export interface TreeProps {
   /** 异步加载数据 */
   loadData?: (node: AntTreeNode) => PromiseLike<any>;
   loadedKeys?: string[];
-  onLoaded?: (loadedKeys: string[], info: { event: 'load'; node: AntTreeNode }) => void;
+  onLoad?: (loadedKeys: string[], info: { event: 'load'; node: AntTreeNode }) => void;
   /** 响应右键点击 */
   onRightClick?: (options: AntTreeNodeMouseEvent) => void;
   /** 设置节点可拖拽（IE>8）*/
@@ -146,6 +147,7 @@ export interface TreeProps {
   prefixCls?: string;
   filterTreeNode?: (node: AntTreeNode) => boolean;
   children?: React.ReactNode | React.ReactNode[];
+  blockNode?: boolean;
 }
 
 export default class Tree extends React.Component<TreeProps, any> {
@@ -155,10 +157,11 @@ export default class Tree extends React.Component<TreeProps, any> {
   static defaultProps = {
     checkable: false,
     showIcon: false,
-    openAnimation: {
-      ...animation,
-      appear: null,
+    motion: {
+      ...collapseMotion,
+      motionAppear: false,
     },
+    blockNode: false,
   };
 
   tree: any;
@@ -190,7 +193,7 @@ export default class Tree extends React.Component<TreeProps, any> {
       } else if (switcherIcon) {
         const switcherOriginCls = switcherIcon.props.className || '';
         return React.cloneElement(switcherIcon, {
-          className: [switcherOriginCls, switcherCls],
+          className: classNames(switcherOriginCls, switcherCls),
         });
       } else {
         return <Icon type="caret-down" className={switcherCls} theme="filled" />;
@@ -204,7 +207,7 @@ export default class Tree extends React.Component<TreeProps, any> {
 
   renderTree = ({ getPrefixCls }: ConfigConsumerProps) => {
     const props = this.props;
-    const { prefixCls: customizePrefixCls, className, showIcon, switcherIcon } = props;
+    const { prefixCls: customizePrefixCls, className, showIcon, switcherIcon, blockNode } = props;
     const checkable = props.checkable;
     const prefixCls = getPrefixCls('tree', customizePrefixCls);
     return (
@@ -212,7 +215,10 @@ export default class Tree extends React.Component<TreeProps, any> {
         ref={this.setTreeRef}
         {...props}
         prefixCls={prefixCls}
-        className={classNames(!showIcon && `${prefixCls}-icon-hide`, className)}
+        className={classNames(className, {
+          [`${prefixCls}-icon-hide`]: !showIcon,
+          [`${prefixCls}-block-node`]: blockNode,
+        })}
         checkable={checkable ? <span className={`${prefixCls}-checkbox-inner`} /> : checkable}
         switcherIcon={(nodeProps: AntTreeNodeProps) =>
           this.renderSwitcherIcon(prefixCls, switcherIcon, nodeProps)

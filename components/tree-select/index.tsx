@@ -19,7 +19,6 @@ export default class TreeSelect extends React.Component<TreeSelectProps, any> {
   static defaultProps = {
     transitionName: 'slide-up',
     choiceTransitionName: 'zoom',
-    showSearch: false,
   };
 
   private rcTreeSelect: any;
@@ -29,6 +28,7 @@ export default class TreeSelect extends React.Component<TreeSelectProps, any> {
 
     warning(
       props.multiple !== false || !props.treeCheckable,
+      'TreeSelect',
       '`multiple` will alway be `true` when `treeCheckable` is true',
     );
   }
@@ -82,6 +82,12 @@ export default class TreeSelect extends React.Component<TreeSelectProps, any> {
       className,
     );
 
+    // showSearch: single - false, multiple - true
+    let { showSearch } = restProps;
+    if (!('showSearch' in restProps)) {
+      showSearch = !!(restProps.multiple || restProps.treeCheckable);
+    }
+
     let checkable = rest.treeCheckable;
     if (checkable) {
       checkable = <span className={`${prefixCls}-tree-checkbox-inner`} />;
@@ -107,6 +113,7 @@ export default class TreeSelect extends React.Component<TreeSelectProps, any> {
         removeIcon={removeIcon}
         clearIcon={clearIcon}
         {...rest}
+        showSearch={showSearch}
         getPopupContainer={getPopupContainer || getContextPopupContainer}
         dropdownClassName={classNames(dropdownClassName, `${prefixCls}-tree-dropdown`)}
         prefixCls={prefixCls}

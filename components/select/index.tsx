@@ -31,7 +31,7 @@ export interface AbstractSelectProps {
   dropdownMenuStyle?: React.CSSProperties;
   dropdownMatchSelectWidth?: boolean;
   onSearch?: (value: string) => any;
-  getPopupContainer?: (triggerNode: Element) => HTMLElement;
+  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
   filterOption?: boolean | ((inputValue: string, option: React.ReactElement<OptionProps>) => any);
   id?: string;
   defaultOpen?: boolean;
@@ -48,6 +48,7 @@ export interface LabeledValue {
 }
 
 export type SelectValue = string | string[] | number | number[] | LabeledValue | LabeledValue[];
+export type SelectedValue = string | number | LabeledValue;
 
 export interface SelectProps<T = SelectValue> extends AbstractSelectProps {
   value?: T;
@@ -56,8 +57,8 @@ export interface SelectProps<T = SelectValue> extends AbstractSelectProps {
   optionLabelProp?: string;
   firstActiveValue?: string | string[];
   onChange?: (value: T, option: React.ReactElement<any> | React.ReactElement<any>[]) => void;
-  onSelect?: (value: T, option: React.ReactElement<any>) => any;
-  onDeselect?: (value: T) => any;
+  onSelect?: (value: SelectedValue, option: React.ReactElement<any>) => any;
+  onDeselect?: (value: SelectedValue) => any;
   onBlur?: (value: T) => void;
   onFocus?: () => void;
   onPopupScroll?: React.UIEventHandler<HTMLDivElement>;
@@ -65,6 +66,7 @@ export interface SelectProps<T = SelectValue> extends AbstractSelectProps {
   onMouseEnter?: (e: React.MouseEvent<HTMLInputElement>) => any;
   onMouseLeave?: (e: React.MouseEvent<HTMLInputElement>) => any;
   maxTagCount?: number;
+  maxTagTextLength?: number;
   maxTagPlaceholder?: React.ReactNode | ((omittedValues: T[]) => React.ReactNode);
   optionFilterProp?: string;
   labelInValue?: boolean;
@@ -83,7 +85,6 @@ export interface OptionProps {
   title?: string;
   children?: React.ReactNode;
   className?: string;
-  key?: string;
   style?: React.CSSProperties;
 }
 
@@ -131,7 +132,8 @@ export default class Select<T = SelectValue> extends React.Component<SelectProps
 
     warning(
       props.mode !== 'combobox',
-      'The combobox mode of Select is deprecated, ' +
+      'Select',
+      'The combobox mode is deprecated, ' +
         'it will be removed in next major version, ' +
         'please use AutoComplete instead',
     );
@@ -204,6 +206,7 @@ export default class Select<T = SelectValue> extends React.Component<SelectProps
       removeIcon,
       clearIcon,
       menuItemSelectedIcon,
+      showArrow,
       ...restProps
     } = this.props;
     const rest = omit(restProps, ['inputIcon']);
@@ -213,6 +216,7 @@ export default class Select<T = SelectValue> extends React.Component<SelectProps
       {
         [`${prefixCls}-lg`]: size === 'large',
         [`${prefixCls}-sm`]: size === 'small',
+        [`${prefixCls}-show-arrow`]: showArrow,
       },
       className,
     );
@@ -261,6 +265,7 @@ export default class Select<T = SelectValue> extends React.Component<SelectProps
         removeIcon={finalRemoveIcon}
         clearIcon={finalClearIcon}
         menuItemSelectedIcon={finalMenuItemSelectedIcon}
+        showArrow={showArrow}
         {...rest}
         {...modeConfig}
         prefixCls={prefixCls}

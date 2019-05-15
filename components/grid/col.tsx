@@ -6,26 +6,29 @@ import { ConfigConsumer, ConfigConsumerProps } from '../config-provider';
 
 const objectOrNumber = PropTypes.oneOfType([PropTypes.object, PropTypes.number]);
 
+// https://github.com/ant-design/ant-design/issues/14324
+type ColSpanType = number | string;
+
 export interface ColSize {
-  span?: number;
-  order?: number;
-  offset?: number;
-  push?: number;
-  pull?: number;
+  span?: ColSpanType;
+  order?: ColSpanType;
+  offset?: ColSpanType;
+  push?: ColSpanType;
+  pull?: ColSpanType;
 }
 
 export interface ColProps extends React.HTMLAttributes<HTMLDivElement> {
-  span?: number;
-  order?: number;
-  offset?: number;
-  push?: number;
-  pull?: number;
-  xs?: number | ColSize;
-  sm?: number | ColSize;
-  md?: number | ColSize;
-  lg?: number | ColSize;
-  xl?: number | ColSize;
-  xxl?: number | ColSize;
+  span?: ColSpanType;
+  order?: ColSpanType;
+  offset?: ColSpanType;
+  push?: ColSpanType;
+  pull?: ColSpanType;
+  xs?: ColSpanType | ColSize;
+  sm?: ColSpanType | ColSize;
+  md?: ColSpanType | ColSize;
+  lg?: ColSpanType | ColSize;
+  xl?: ColSpanType | ColSize;
+  xxl?: ColSpanType | ColSize;
   prefixCls?: string;
 }
 
@@ -82,6 +85,7 @@ export default class Col extends React.Component<ColProps, {}> {
       };
     });
     const classes = classNames(
+      prefixCls,
       {
         [`${prefixCls}-${span}`]: span !== undefined,
         [`${prefixCls}-order-${order}`]: order,
@@ -97,10 +101,10 @@ export default class Col extends React.Component<ColProps, {}> {
       <RowContext.Consumer>
         {({ gutter }) => {
           let style = others.style;
-          if ((gutter as number) > 0) {
+          if (gutter! > 0) {
             style = {
-              paddingLeft: (gutter as number) / 2,
-              paddingRight: (gutter as number) / 2,
+              paddingLeft: gutter! / 2,
+              paddingRight: gutter! / 2,
               ...style,
             };
           }

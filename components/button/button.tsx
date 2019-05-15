@@ -7,7 +7,7 @@ import omit from 'omit.js';
 import Icon from '../icon';
 import { ConfigConsumer, ConfigConsumerProps } from '../config-provider';
 import Wave from '../_util/wave';
-import { tuple } from '../_util/type';
+import { Omit, tuple } from '../_util/type';
 
 const rxTwoCNChar = /^[\u4e00-\u9fa5]{2}$/;
 const isTwoCNChar = rxTwoCNChar.test.bind(rxTwoCNChar);
@@ -40,9 +40,9 @@ function insertSpace(child: React.ReactChild, needInserted: boolean) {
   return child;
 }
 
-const ButtonTypes = tuple('default', 'primary', 'ghost', 'dashed', 'danger');
+const ButtonTypes = tuple('default', 'primary', 'ghost', 'dashed', 'danger', 'link');
 export type ButtonType = (typeof ButtonTypes)[number];
-const ButtonShapes = tuple('circle', 'circle-outline');
+const ButtonShapes = tuple('circle', 'circle-outline', 'round');
 export type ButtonShape = (typeof ButtonShapes)[number];
 const ButtonSizes = tuple('large', 'default', 'small');
 export type ButtonSize = (typeof ButtonSizes)[number];
@@ -62,20 +62,23 @@ export interface BaseButtonProps {
   children?: React.ReactNode;
 }
 
+// Typescript will make optional not optional if use Pick with union.
+// Should change to `AnchorButtonProps | NativeButtonProps` and `any` to `HTMLAnchorElement | HTMLButtonElement` if it fixed.
+// ref: https://github.com/ant-design/ant-design/issues/15930
 export type AnchorButtonProps = {
   href: string;
   target?: string;
-  onClick?: React.MouseEventHandler<HTMLAnchorElement>;
+  onClick?: React.MouseEventHandler<any>;
 } & BaseButtonProps &
-  React.AnchorHTMLAttributes<HTMLAnchorElement>;
+  Omit<React.AnchorHTMLAttributes<any>, 'type'>;
 
 export type NativeButtonProps = {
   htmlType?: ButtonHTMLType;
-  onClick?: React.MouseEventHandler<HTMLButtonElement>;
+  onClick?: React.MouseEventHandler<any>;
 } & BaseButtonProps &
-  React.ButtonHTMLAttributes<HTMLButtonElement>;
+  Omit<React.ButtonHTMLAttributes<any>, 'type'>;
 
-export type ButtonProps = AnchorButtonProps | NativeButtonProps;
+export type ButtonProps = Partial<AnchorButtonProps & NativeButtonProps>;
 
 interface ButtonState {
   loading?: boolean | { delay?: number };
@@ -90,6 +93,7 @@ class Button extends React.Component<ButtonProps, ButtonState> {
     loading: false,
     ghost: false,
     block: false,
+    htmlType: 'button',
   };
 
   static propTypes = {
@@ -191,7 +195,7 @@ class Button extends React.Component<ButtonProps, ButtonState> {
     return React.Children.count(children) === 1 && !icon;
   }
 
-  renderButton = ({ getPrefixCls }: ConfigConsumerProps) => {
+  renderButton = ({ getPrefixCls, autoInsertSpaceInButton }: ConfigConsumerProps) => {
     const {
       prefixCls: customizePrefixCls,
       type,
@@ -208,6 +212,7 @@ class Button extends React.Component<ButtonProps, ButtonState> {
     const { loading, hasTwoCNChar } = this.state;
 
     const prefixCls = getPrefixCls('btn', customizePrefixCls);
+    const autoInsertSpace = autoInsertSpaceInButton !== false;
 
     // large => lg
     // small => sm
@@ -218,6 +223,7 @@ class Button extends React.Component<ButtonProps, ButtonState> {
         break;
       case 'small':
         sizeCls = 'sm';
+        break;
       default:
         break;
     }
@@ -229,7 +235,7 @@ class Button extends React.Component<ButtonProps, ButtonState> {
       [`${prefixCls}-icon-only`]: !children && children !== 0 && icon,
       [`${prefixCls}-loading`]: loading,
       [`${prefixCls}-background-ghost`]: ghost,
-      [`${prefixCls}-two-chinese-chars`]: hasTwoCNChar,
+      [`${prefixCls}-two-chinese-chars`]: hasTwoCNChar && autoInsertSpace,
       [`${prefixCls}-block`]: block,
     });
 
@@ -237,7 +243,9 @@ class Button extends React.Component<ButtonProps, ButtonState> {
     const iconNode = iconType ? <Icon type={iconType} /> : null;
     const kids =
       children || children === 0
-        ? React.Children.map(children, child => insertSpace(child, this.isNeedInserted()))
+        ? React.Children.map(children, child =>
+            insertSpace(child as React.ReactChild, this.isNeedInserted() && autoInsertSpace),
+          )
         : null;
 
     const linkButtonRestProps = omit(rest as AnchorButtonProps, ['htmlType']);
@@ -258,20 +266,24 @@ class Button extends React.Component<ButtonProps, ButtonState> {
     // React does not recognize the `htmlType` prop on a DOM element. Here we pick it out of `rest`.
     const { htmlType, ...otherProps } = rest as NativeButtonProps;
 
-    return (
-      <Wave>
-        <button
-          {...otherProps as NativeButtonProps}
-          type={htmlType || 'button'}
-          className={classes}
-          onClick={this.handleClick}
-          ref={this.saveButtonRef}
-        >
-          {iconNode}
-          {kids}
-        </button>
-      </Wave>
+    const buttonNode = (
+      <button
+        {...otherProps as NativeButtonProps}
+        type={htmlType}
+        className={classes}
+        onClick={this.handleClick}
+        ref={this.saveButtonRef}
+      >
+        {iconNode}
+        {kids}
+      </button>
     );
+
+    if (type === 'link') {
+      return buttonNode;
+    }
+
+    return <Wave>{buttonNode}</Wave>;
   };
 
   render() {

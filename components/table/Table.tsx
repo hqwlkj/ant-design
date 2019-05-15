@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import RcTable from 'rc-table';
+import RcTable, { INTERNAL_COL_DEFINE } from 'rc-table';
 import * as PropTypes from 'prop-types';
 import classNames from 'classnames';
 import shallowEqual from 'shallowequal';
@@ -59,8 +59,6 @@ const defaultPagination = {
   onShowSizeChange: noop,
 };
 
-const ROW_SELECTION_COLUMN_WIDTH = '62px';
-
 /**
  * Avoid creating new object, so that parent component's shouldComponentUpdate
  * can works appropriately。
@@ -112,16 +110,22 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
   constructor(props: TableProps<T>) {
     super(props);
 
+    const { expandedRowRender, columns = [] } = props;
+
     warning(
       !('columnsPageRange' in props || 'columnsPageSize' in props),
+      'Table',
       '`columnsPageRange` and `columnsPageSize` are removed, please use ' +
         'fixed columns instead, see: https://u.ant.design/fixed-columns.',
     );
 
-    warning(
-      !('expandedRowRender' in props) || !('scroll' in props),
-      '`expandedRowRender` and `scroll` are not compatible. Please use one of them at one time.',
-    );
+    if (expandedRowRender && columns.some(({ fixed }) => !!fixed)) {
+      warning(
+        false,
+        'Table',
+        '`expandedRowRender` and `Column.fixed` are not compatible. Please use one of them at one time.',
+      );
+    }
 
     this.columns = props.columns || normalizeColumns(props.children as React.ReactChildren);
 
@@ -151,7 +155,12 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
     const key = this.getRecordKey(item, index);
     // Cache checkboxProps
     if (!this.CheckboxPropsCache[key]) {
-      this.CheckboxPropsCache[key] = rowSelection.getCheckboxProps(item);
+      const checkboxProps = (this.CheckboxPropsCache[key] = rowSelection.getCheckboxProps(item));
+      warning(
+        !('checked' in checkboxProps) && !('defaultChecked' in checkboxProps),
+        'Table',
+        'Do not set `checked` or `defaultChecked` in `getCheckboxProps`. Please use `selectedRowKeys` instead.',
+      );
     }
     return this.CheckboxPropsCache[key];
   };
@@ -167,13 +176,26 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
   }
 
   getDefaultPagination(props: TableProps<T>) {
-    const pagination: PaginationConfig = props.pagination || {};
+    const pagination: PaginationConfig =
+      typeof props.pagination === 'object' ? props.pagination : {};
+    let current;
+    if ('current' in pagination) {
+      current = pagination.current;
+    } else if ('defaultCurrent' in pagination) {
+      current = pagination.defaultCurrent;
+    }
+    let pageSize;
+    if ('pageSize' in pagination) {
+      pageSize = pagination.pageSize;
+    } else if ('defaultPageSize' in pagination) {
+      pageSize = pagination.defaultPageSize;
+    }
     return this.hasPagination(props)
       ? {
           ...defaultPagination,
           ...pagination,
-          current: pagination.defaultCurrent || pagination.current || 1,
-          pageSize: pagination.defaultPageSize || pagination.pageSize || 10,
+          current: current || 1,
+          pageSize: pageSize || 10,
         }
       : {};
   }
@@ -195,6 +217,10 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
     if (nextProps.rowSelection && 'selectedRowKeys' in nextProps.rowSelection) {
       this.store.setState({
         selectedRowKeys: nextProps.rowSelection.selectedRowKeys || [],
+      });
+    } else if (this.props.rowSelection && !nextProps.rowSelection) {
+      this.store.setState({
+        selectedRowKeys: [],
       });
     }
     if ('dataSource' in nextProps && nextProps.dataSource !== this.props.dataSource) {
@@ -465,7 +491,7 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
     }
 
     // Controlled current prop will not respond user interaction
-    if (typeof props.pagination === 'object' && 'current' in (props.pagination as Object)) {
+    if (typeof props.pagination === 'object' && 'current' in props.pagination) {
       newState.pagination = {
         ...pagination,
         current: this.state.pagination.current,
@@ -658,11 +684,7 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
       pagination,
     };
     // Controlled current prop will not respond user interaction
-    if (
-      props.pagination &&
-      typeof props.pagination === 'object' &&
-      'current' in (props.pagination as Object)
-    ) {
+    if (props.pagination && typeof props.pagination === 'object' && 'current' in props.pagination) {
       newState.pagination = {
         ...pagination,
         current: this.state.pagination.current,
@@ -715,9 +737,10 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
   getRecordKey = (record: T, index: number) => {
     const { rowKey } = this.props;
     const recordKey =
-      typeof rowKey === 'function' ? rowKey(record, index) : (record as any)[rowKey as string];
+      typeof rowKey === 'function' ? rowKey(record, index) : (record as any)[rowKey!];
     warning(
       recordKey !== undefined,
+      'Table',
       'Each record in dataSource of table should have a unique `key` prop, ' +
         'or set `rowKey` of Table to an unique primary key, ' +
         'see https://u.ant.design/table-row-key',
@@ -727,6 +750,13 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
 
   getPopupContainer = () => {
     return ReactDOM.findDOMNode(this) as HTMLElement;
+  };
+
+  generatePopupContainerFunc = () => {
+    const { scroll } = this.props;
+
+    // Use undefined to let rc component use default logic.
+    return scroll ? this.getPopupContainer : undefined;
   };
 
   renderRowSelection(prefixCls: string, locale: TableLocale) {
@@ -747,8 +777,11 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
         render: this.renderSelectionBox(rowSelection.type),
         className: selectionColumnClass,
         fixed: rowSelection.fixed,
-        width: rowSelection.columnWidth || ROW_SELECTION_COLUMN_WIDTH,
+        width: rowSelection.columnWidth,
         title: rowSelection.columnTitle,
+        [INTERNAL_COL_DEFINE]: {
+          className: `${prefixCls}-selection-col`,
+        },
       };
       if (rowSelection.type !== 'radio') {
         const checkboxAllDisabled = data.every(
@@ -766,7 +799,7 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
             onSelect={this.handleSelectRow}
             selections={rowSelection.selections}
             hideDefaultSelections={rowSelection.hideDefaultSelections}
-            getPopupContainer={this.getPopupContainer}
+            getPopupContainer={this.generatePopupContainerFunc()}
           />
         );
       }
@@ -829,7 +862,7 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
             confirmFilter={this.handleFilter}
             prefixCls={`${prefixCls}-filter`}
             dropdownPrefixCls={dropdownPrefixCls || 'ant-dropdown'}
-            getPopupContainer={this.getPopupContainer}
+            getPopupContainer={this.generatePopupContainerFunc()}
             key="filter-dropdown"
           />
         );
@@ -856,7 +889,14 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
         );
 
         sortButton = (
-          <div title={locale.sortTitle} className={`${prefixCls}-column-sorter`} key="sorter">
+          <div
+            title={locale.sortTitle}
+            className={classNames(
+              `${prefixCls}-column-sorter-inner`,
+              ascend && descend && `${prefixCls}-column-sorter-inner-full`,
+            )}
+            key="sorter"
+          >
             {ascend}
             {descend}
           </div>
@@ -890,10 +930,14 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
           [`${prefixCls}-column-sort`]: isSortColumn && sortOrder,
         }),
         title: [
-          <div key="title" className={sortButton ? `${prefixCls}-column-sorters` : undefined}>
-            {this.renderColumnTitle(column.title)}
-            {sortButton}
-          </div>,
+          <span key="title" className={`${prefixCls}-header-column`}>
+            <div className={sortButton ? `${prefixCls}-column-sorters` : undefined}>
+              <span className={`${prefixCls}-column-title`}>
+                {this.renderColumnTitle(column.title)}
+              </span>
+              <span className={`${prefixCls}-column-sorter`}>{sortButton}</span>
+            </div>
+          </span>,
           filterDropdown,
         ],
         onHeaderCell,
@@ -944,7 +988,7 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
     const { pagination } = this.state;
     if (pagination.size) {
       size = pagination.size;
-    } else if ((this.props.size as string) === 'middle' || this.props.size === 'small') {
+    } else if (this.props.size === 'middle' || this.props.size === 'small') {
       size = 'small';
     }
     const position = pagination.position || 'bottom';
@@ -1093,7 +1137,6 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
     renderEmpty: RenderEmptyHandler,
     dropdownPrefixCls: string,
     contextLocale: TableLocale,
-    loading: SpinProps,
   ) => {
     const { style, className, showHeader, locale, ...restProps } = this.props;
     const data = this.getCurrentPageData();
@@ -1136,7 +1179,7 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
         className={classString}
         expandIconColumnIndex={expandIconColumnIndex}
         expandIconAsCell={expandIconAsCell}
-        emptyText={!loading.spinning && mergedLocale.emptyText}
+        emptyText={mergedLocale.emptyText}
       />
     );
   };
@@ -1161,7 +1204,7 @@ export default class Table<T> extends React.Component<TableProps<T>, TableState<
     const dropdownPrefixCls = getPrefixCls('dropdown', customizeDropdownPrefixCls);
     const table = (
       <LocaleReceiver componentName="Table" defaultLocale={defaultLocale.Table}>
-        {locale => this.renderTable(prefixCls, renderEmpty, dropdownPrefixCls, locale, loading)}
+        {locale => this.renderTable(prefixCls, renderEmpty, dropdownPrefixCls, locale)}
       </LocaleReceiver>
     );
 

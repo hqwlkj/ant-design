@@ -29,8 +29,9 @@ export interface UploadFile {
   type: string;
 }
 
-export interface UploadChangeParam {
-  file: UploadFile;
+export interface UploadChangeParam<T extends object = UploadFile> {
+  // https://github.com/ant-design/ant-design/issues/14420
+  file: T;
   fileList: Array<UploadFile>;
   event?: { percent: number };
 }
@@ -49,6 +50,8 @@ export interface UploadLocale {
 
 export type UploadType = 'drag' | 'select';
 export type UploadListType = 'text' | 'picture' | 'picture-card';
+
+type PreviewFileHandler = (file: File | Blob) => PromiseLike<string>;
 
 export interface UploadProps {
   type?: UploadType;
@@ -76,6 +79,8 @@ export interface UploadProps {
   withCredentials?: boolean;
   openFileDialogOnClick?: boolean;
   locale?: UploadLocale;
+  id?: string;
+  previewFile?: PreviewFileHandler;
 }
 
 export interface UploadState {
@@ -93,4 +98,5 @@ export interface UploadListProps {
   showRemoveIcon?: boolean;
   showPreviewIcon?: boolean;
   locale: UploadLocale;
+  previewFile?: PreviewFileHandler;
 }

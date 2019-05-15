@@ -1,22 +1,39 @@
 import * as React from 'react';
-import createReactContext, { Context } from 'create-react-context';
+import createReactContext, { Context } from '@ant-design/create-react-context';
 
 import defaultRenderEmpty, { RenderEmptyHandler } from './renderEmpty';
 
 export { RenderEmptyHandler };
 
+export interface CSPConfig {
+  nonce?: string;
+}
+
 export interface ConfigConsumerProps {
-  getPopupContainer?: (triggerNode?: HTMLElement) => HTMLElement;
+  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
   rootPrefixCls?: string;
   getPrefixCls: (suffixCls: string, customizePrefixCls?: string) => string;
   renderEmpty: RenderEmptyHandler;
+  csp?: CSPConfig;
+  autoInsertSpaceInButton?: boolean;
 }
 
-interface ConfigProviderProps {
-  getPopupContainer?: (triggerNode?: HTMLElement) => HTMLElement;
+export const configConsumerProps = [
+  'getPopupContainer',
+  'rootPrefixCls',
+  'getPrefixCls',
+  'renderEmpty',
+  'csp',
+  'autoInsertSpaceInButton',
+];
+
+export interface ConfigProviderProps {
+  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
   prefixCls?: string;
   children?: React.ReactNode;
   renderEmpty?: RenderEmptyHandler;
+  csp?: CSPConfig;
+  autoInsertSpaceInButton?: boolean;
 }
 
 const ConfigContext: Context<ConfigConsumerProps | null> = createReactContext({
@@ -42,11 +59,13 @@ class ConfigProvider extends React.Component<ConfigProviderProps> {
   };
 
   renderProvider = (context: ConfigConsumerProps) => {
-    const { children, getPopupContainer, renderEmpty } = this.props;
+    const { children, getPopupContainer, renderEmpty, csp, autoInsertSpaceInButton } = this.props;
 
     const config: ConfigConsumerProps = {
       ...context,
       getPrefixCls: this.getPrefixCls,
+      csp,
+      autoInsertSpaceInButton,
     };
 
     if (getPopupContainer) {
@@ -79,10 +98,14 @@ interface ConsumerConfig {
   prefixCls: string;
 }
 
+interface ConstructorProps {
+  displayName?: string;
+}
+
 export function withConfigConsumer<ExportProps extends BasicExportProps>(config: ConsumerConfig) {
-  return function(Component: IReactComponent): React.SFC<ExportProps> {
+  return function<ComponentDef>(Component: IReactComponent): React.SFC<ExportProps> & ComponentDef {
     // Wrap with ConfigConsumer. Since we need compatible with react 15, be care when using ref methods
-    return (props: ExportProps) => (
+    const SFC = ((props: ExportProps) => (
       <ConfigConsumer>
         {(configProps: ConfigConsumerProps) => {
           const { prefixCls: basicPrefixCls } = config;
@@ -92,7 +115,14 @@ export function withConfigConsumer<ExportProps extends BasicExportProps>(config:
           return <Component {...configProps} {...props} prefixCls={prefixCls} />;
         }}
       </ConfigConsumer>
-    );
+    )) as React.SFC<ExportProps> & ComponentDef;
+
+    const cons: ConstructorProps = Component.constructor as ConstructorProps;
+    const name = (cons && cons.displayName) || Component.name || 'Component';
+
+    SFC.displayName = `withConfigConsumer(${name})`;
+
+    return SFC;
   };
 }
 

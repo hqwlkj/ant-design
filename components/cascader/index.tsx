@@ -89,7 +89,7 @@ export interface CascaderProps {
   onPopupVisibleChange?: (popupVisible: boolean) => void;
   prefixCls?: string;
   inputPrefixCls?: string;
-  getPopupContainer?: (triggerNode?: HTMLElement) => HTMLElement;
+  getPopupContainer?: (triggerNode: HTMLElement) => HTMLElement;
   popupVisible?: boolean;
   /** use this after antd@3.7.0 */
   fieldNames?: FieldNamesType;
@@ -366,7 +366,8 @@ class Cascader extends React.Component<CascaderProps, CascaderState> {
     } else {
       warning(
         typeof limit !== 'number',
-        "'limit' of showSearch in Cascader should be positive number or false.",
+        'Cascader',
+        "'limit' of showSearch should be positive number or false.",
       );
       filtered = flattenOptions.filter(path => filter(this.state.inputValue, path, names));
     }
@@ -519,6 +520,7 @@ class Cascader extends React.Component<CascaderProps, CascaderState> {
         <span className={`${prefixCls}-picker-label`}>{this.getLabel()}</span>
         <Input
           {...inputProps}
+          tabIndex="-1"
           ref={this.saveInput}
           prefixCls={inputPrefixCls}
           placeholder={value && value.length > 0 ? undefined : placeholder}

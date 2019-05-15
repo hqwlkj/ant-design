@@ -7,6 +7,7 @@ import enUS from './locale/en_US';
 import LocaleReceiver from '../locale-provider/LocaleReceiver';
 import { ConfigConsumer, ConfigConsumerProps } from '../config-provider';
 import interopDefault from '../_util/interopDefault';
+import { polyfill } from 'react-lifecycles-compat';
 
 export { HeaderProps } from './Header';
 
@@ -48,11 +49,10 @@ export interface CalendarState {
   mode?: CalendarMode;
 }
 
-export default class Calendar extends React.Component<CalendarProps, CalendarState> {
+class Calendar extends React.Component<CalendarProps, CalendarState> {
   static defaultProps = {
     locale: {},
     fullscreen: true,
-    mode: 'month' as CalendarMode,
     onSelect: noop,
     onPanelChange: noop,
     onChange: noop,
@@ -74,6 +74,17 @@ export default class Calendar extends React.Component<CalendarProps, CalendarSta
     onChange: PropTypes.func,
   };
 
+  static getDerivedStateFromProps(nextProps: CalendarProps) {
+    const newState = {} as CalendarState;
+    if ('value' in nextProps) {
+      newState.value = nextProps.value!;
+    }
+    if ('mode' in nextProps) {
+      newState.mode = nextProps.mode;
+    }
+    return Object.keys(newState).length > 0 ? newState : null;
+  }
+
   prefixCls?: string;
 
   constructor(props: CalendarProps) {
@@ -88,21 +99,8 @@ export default class Calendar extends React.Component<CalendarProps, CalendarSta
     }
     this.state = {
       value,
-      mode: props.mode,
+      mode: props.mode || 'month',
     };
-  }
-
-  componentWillReceiveProps(nextProps: CalendarProps) {
-    if ('value' in nextProps) {
-      this.setState({
-        value: nextProps.value!,
-      });
-    }
-    if ('mode' in nextProps && nextProps.mode !== this.props.mode) {
-      this.setState({
-        mode: nextProps.mode!,
-      });
-    }
   }
 
   monthCellRender = (value: moment.Moment) => {
@@ -128,23 +126,21 @@ export default class Calendar extends React.Component<CalendarProps, CalendarSta
   };
 
   setValue = (value: moment.Moment, way: 'select' | 'changePanel') => {
+    const prevValue = this.props.value || this.state.value;
+    const { mode } = this.state;
+
     if (!('value' in this.props)) {
       this.setState({ value });
     }
     if (way === 'select') {
+      if (prevValue && prevValue.month() !== value.month()) {
+        this.onPanelChange(value, mode);
+      }
       if (this.props.onSelect) {
         this.props.onSelect(value);
       }
     } else if (way === 'changePanel') {
-      this.onPanelChange(value, this.state.mode);
-    }
-  };
-
-  setType = (type: string) => {
-    const mode = type === 'date' ? 'month' : 'year';
-    if (this.state.mode !== mode) {
-      this.setState({ mode });
-      this.onPanelChange(this.state.value, mode);
+      this.onPanelChange(value, mode);
     }
   };
 
@@ -152,8 +148,9 @@ export default class Calendar extends React.Component<CalendarProps, CalendarSta
     this.setValue(value, 'changePanel');
   };
 
-  onHeaderTypeChange = (type: string) => {
-    this.setType(type);
+  onHeaderTypeChange = (mode: CalendarMode) => {
+    this.setState({ mode });
+    this.onPanelChange(this.state.value, mode);
   };
 
   onPanelChange(value: moment.Moment, mode: CalendarMode | undefined) {
@@ -211,8 +208,6 @@ export default class Calendar extends React.Component<CalendarProps, CalendarSta
       dateFullCellRender,
       monthFullCellRender,
     } = props;
-    const type = mode === 'year' ? 'month' : 'date';
-
     const monthCellRender = monthFullCellRender || this.monthCellRender;
     const dateCellRender = dateFullCellRender || this.dateCellRender;
 
@@ -241,7 +236,7 @@ export default class Calendar extends React.Component<CalendarProps, CalendarSta
             <div className={cls} style={style}>
               <Header
                 fullscreen={fullscreen}
-                type={type}
+                type={mode}
                 value={value}
                 locale={locale.lang}
                 prefixCls={prefixCls}
@@ -254,7 +249,7 @@ export default class Calendar extends React.Component<CalendarProps, CalendarSta
                 disabledDate={disabledDate}
                 Select={noop}
                 locale={locale.lang}
-                type={type}
+                type={mode === 'year' ? 'month' : 'date'}
                 prefixCls={prefixCls}
                 showHeader={false}
                 value={value}
@@ -277,3 +272,7 @@ export default class Calendar extends React.Component<CalendarProps, CalendarSta
     );
   }
 }
+
+polyfill(Calendar);
+
+export default Calendar;

@@ -8,7 +8,8 @@ export interface HttpRequestHeader {
 
 export interface RcFile extends File {
   uid: string;
-  lastModifiedDate: Date;
+  readonly lastModifiedDate: Date;
+  readonly webkitRelativePath: string;
 }
 
 export interface UploadFile {
@@ -58,24 +59,24 @@ export interface UploadProps {
   name?: string;
   defaultFileList?: Array<UploadFile>;
   fileList?: Array<UploadFile>;
-  action?: string | ((file: UploadFile) => PromiseLike<any>);
+  action?: string | ((file: RcFile) => string) | ((file: RcFile) => PromiseLike<string>);
   directory?: boolean;
-  data?: Object | ((file: UploadFile) => any);
+  data?: object | ((file: UploadFile) => object);
   headers?: HttpRequestHeader;
   showUploadList?: boolean | ShowUploadListInterface;
   multiple?: boolean;
   accept?: string;
-  beforeUpload?: (file: RcFile, FileList: RcFile[]) => boolean | PromiseLike<any>;
+  beforeUpload?: (file: RcFile, FileList: RcFile[]) => boolean | PromiseLike<void>;
   onChange?: (info: UploadChangeParam) => void;
   listType?: UploadListType;
   className?: string;
   onPreview?: (file: UploadFile) => void;
-  onRemove?: (file: UploadFile) => void | boolean;
+  onRemove?: (file: UploadFile) => void | boolean | Promise<void | boolean>;
   supportServerRender?: boolean;
   style?: React.CSSProperties;
   disabled?: boolean;
   prefixCls?: string;
-  customRequest?: (option: any) => void;
+  customRequest?: (option: object) => void;
   withCredentials?: boolean;
   openFileDialogOnClick?: boolean;
   locale?: UploadLocale;

@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, mount } from 'enzyme';
-import Icon from '..';
 import ReactIcon from '@ant-design/icons-react';
+import Icon from '..';
 import Tooltip from '../../tooltip';
 import { getThemeFromTypeName, withThemeSuffix } from '../utils';
 
@@ -225,5 +225,23 @@ describe('utils', () => {
       'home-o-twotone',
       'home-o',
     ]);
+  });
+
+  it('should depracate typo icon name', () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    render(<Icon type="interation" />);
+    expect(errorSpy).toHaveBeenLastCalledWith(
+      "Warning: [antd: Icon] Icon 'interation' is typo and depracated, please use 'interaction' instead.",
+    );
+    render(<Icon type="cross" />);
+    expect(errorSpy).toHaveBeenLastCalledWith(
+      "Warning: [antd: Icon] Icon 'cross' is typo and depracated, please use 'close' instead.",
+    );
+    render(<Icon type="canlendar" theme="twoTone" />);
+    expect(errorSpy).toHaveBeenLastCalledWith(
+      "Warning: [antd: Icon] Icon 'canlendar' is typo and depracated, please use 'calendar' instead.",
+    );
+    expect(errorSpy).toHaveBeenCalledTimes(3);
+    errorSpy.mockRestore();
   });
 });

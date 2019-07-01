@@ -20,7 +20,7 @@ interface FormCreateOptionMessages {
 }
 
 export interface FormCreateOption<T> {
-  onFieldsChange?: (props: T, fields: object, allFields: any) => void;
+  onFieldsChange?: (props: T, fields: any, allFields: any) => void;
   onValuesChange?: (props: T, changedValues: any, allValues: any) => void;
   mapPropsToFields?: (props: T) => void;
   validateMessages?: FormCreateOptionMessages;
@@ -34,7 +34,7 @@ export type FormLayout = (typeof FormLayouts)[number];
 export interface FormProps extends React.FormHTMLAttributes<HTMLFormElement> {
   layout?: FormLayout;
   form?: WrappedFormUtils;
-  onSubmit?: React.FormEventHandler<any>;
+  onSubmit?: React.FormEventHandler<HTMLElement>;
   style?: React.CSSProperties;
   className?: string;
   prefixCls?: string;

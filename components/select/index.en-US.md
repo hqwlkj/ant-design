@@ -43,7 +43,7 @@ Select component to select value from options.
 | mode | Set mode of Select | 'default' \| 'multiple' \| 'tags' | 'default' |
 | notFoundContent | Specify content to show when no result matches.. | string | 'Not Found' |
 | optionFilterProp | Which prop value of option will be used for filter if filterOption is true | string | value |
-| optionLabelProp | Which prop value of option will render as content of select. | string | `value` for `combobox`, `children` for other modes |
+| optionLabelProp | Which prop value of option will render as content of select. [Example](https://codesandbox.io/s/antd-reproduction-template-tk678) | string | `value` for `combobox`, `children` for other modes |
 | placeholder | Placeholder of select | string\|ReactNode | - |
 | showArrow | Whether to show the drop-down arrow | boolean | true |
 | showSearch | Whether show search input in single mode. | boolean | false |
@@ -51,7 +51,7 @@ Select component to select value from options.
 | suffixIcon | The custom suffix icon | ReactNode | - |
 | removeIcon | The custom remove icon | ReactNode | - |
 | clearIcon | The custom clear icon | ReactNode | - |
-| menuItemSelectedIcon | The custom menuItemSelected icon | ReactNode | - |
+| menuItemSelectedIcon | The custom menuItemSelected icon with multiple options | ReactNode | - |
 | tokenSeparators | Separator used to tokenize on tag/multiple mode | string\[] |  |
 | value | Current selected option. | string\|string\[]\<br />number\|number\[]\<br />LabeledValue\|LabeledValue[] | - |
 | onBlur | Called when blur | function | - |

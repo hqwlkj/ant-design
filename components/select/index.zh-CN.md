@@ -14,10 +14,10 @@ title: Select
 
 ## API
 
-```html
-<select>
-  <option value="lucy">lucy</option>
-</select>
+```jsx
+<Select>
+  <Select.Option value="lucy">lucy</Select.Option>
+</Select>
 ```
 
 ### Select props
@@ -43,7 +43,7 @@ title: Select
 | maxTagPlaceholder | 隐藏 tag 时显示的内容 | ReactNode/function(omittedValues) | - |
 | mode | 设置 Select 的模式为多选或标签 | 'multiple' \| 'tags' | - |
 | notFoundContent | 当下拉列表为空时显示的内容 | string | 'Not Found' |
-| optionFilterProp | 搜索时过滤对应的 option 属性，如设置为 children 表示对内嵌内容进行搜索 | string | value |
+| optionFilterProp | 搜索时过滤对应的 option 属性，如设置为 children 表示对内嵌内容进行搜索。[示例](https://codesandbox.io/s/antd-reproduction-template-tk678) | string | value |
 | optionLabelProp | 回填到选择框的 Option 的属性值，默认是 Option 的子元素。比如在子元素需要高亮效果时，此值可以设为 `value`。 | string | `children` （combobox 模式下为 `value`） |
 | placeholder | 选择框默认文字 | string | - |
 | showArrow | 是否显示下拉小箭头 | boolean | true |
@@ -52,10 +52,10 @@ title: Select
 | suffixIcon | 自定义的选择框后缀图标 | ReactNode | - |
 | removeIcon | 自定义的多选框清除图标 | ReactNode | - |
 | clearIcon | 自定义的多选框清空图标 | ReactNode | - |
-| menuItemSelectedIcon | 自定义当前选中的条目图标 | ReactNode | - |
+| menuItemSelectedIcon | 自定义多选时当前选中的条目图标 | ReactNode | - |
 | tokenSeparators | 在 tags 和 multiple 模式下自动分词的分隔符 | string\[] |  |
 | value | 指定当前选中的条目 | string\|string\[]\<br />number\|number\[]\<br />LabeledValue\|LabeledValue[] | - |
-| onBlur | 失去焦点的时回调 | function | - |
+| onBlur | 失去焦点时回调 | function | - |
 | onChange | 选中 option，或 input 的 value 变化（combobox 模式下）时，调用此函数 | function(value, option:Option/Array&lt;Option>) | - |
 | onDeselect | 取消选中时调用，参数为选中项的 value (或 key) 值，仅在 multiple 或 tags 模式下生效 | function(string\|number\|LabeledValue) | - |
 | onFocus | 获得焦点时回调 | function | - |
@@ -69,7 +69,7 @@ title: Select
 | onDropdownVisibleChange | 展开下拉菜单的回调 (3.9.0 后支持) | function(open) | - |
 | loading | 加载中状态 | Boolean | false |
 
-> 注意，如果发现下拉菜单跟随页面滚动，或者需要在其他弹层中触发 Select，请尝试使用 `getPopupContainer={triggerNode => triggerNode.parentNode}` 将下拉弹层渲染节点固定在触发器的父元素中。
+> 注意，如果发现下拉菜单跟随页面滚动，或者需要在其他弹层中触发 Select，请尝试使用 `getPopupContainer={triggerNode => triggerNode.parentElement}` 将下拉弹层渲染节点固定在触发器的父元素中。
 
 ### Select Methods
 

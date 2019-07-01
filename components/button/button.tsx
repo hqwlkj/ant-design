@@ -15,6 +15,29 @@ function isString(str: any) {
   return typeof str === 'string';
 }
 
+function spaceChildren(children: React.ReactNode, needInserted: boolean) {
+  let isPrevChildPure: boolean = false;
+  const childList: React.ReactNode[] = [];
+  React.Children.forEach(children, child => {
+    const type = typeof child;
+    const isCurrentChildPure = type === 'string' || type === 'number';
+    if (isPrevChildPure && isCurrentChildPure) {
+      const lastIndex = childList.length - 1;
+      const lastChild = childList[lastIndex];
+      childList[lastIndex] = `${lastChild}${child}`;
+    } else {
+      childList.push(child);
+    }
+
+    isPrevChildPure = isCurrentChildPure;
+  });
+
+  // Pass to React.Children.map to auto fill key
+  return React.Children.map(childList, child =>
+    insertSpace(child as React.ReactChild, needInserted),
+  );
+}
+
 // Insert one space between two chinese characters automatically.
 function insertSpace(child: React.ReactChild, needInserted: boolean) {
   // Check the child if is undefined or null.
@@ -68,15 +91,15 @@ export interface BaseButtonProps {
 export type AnchorButtonProps = {
   href: string;
   target?: string;
-  onClick?: React.MouseEventHandler<any>;
+  onClick?: React.MouseEventHandler<HTMLElement>;
 } & BaseButtonProps &
-  Omit<React.AnchorHTMLAttributes<any>, 'type'>;
+  Omit<React.AnchorHTMLAttributes<any>, 'type' | 'onClick'>;
 
 export type NativeButtonProps = {
   htmlType?: ButtonHTMLType;
-  onClick?: React.MouseEventHandler<any>;
+  onClick?: React.MouseEventHandler<HTMLElement>;
 } & BaseButtonProps &
-  Omit<React.ButtonHTMLAttributes<any>, 'type'>;
+  Omit<React.ButtonHTMLAttributes<any>, 'type' | 'onClick'>;
 
 export type ButtonProps = Partial<AnchorButtonProps & NativeButtonProps>;
 
@@ -243,9 +266,7 @@ class Button extends React.Component<ButtonProps, ButtonState> {
     const iconNode = iconType ? <Icon type={iconType} /> : null;
     const kids =
       children || children === 0
-        ? React.Children.map(children, child =>
-            insertSpace(child as React.ReactChild, this.isNeedInserted() && autoInsertSpace),
-          )
+        ? spaceChildren(children, this.isNeedInserted() && autoInsertSpace)
         : null;
 
     const linkButtonRestProps = omit(rest as AnchorButtonProps, ['htmlType']);
@@ -268,7 +289,7 @@ class Button extends React.Component<ButtonProps, ButtonState> {
 
     const buttonNode = (
       <button
-        {...otherProps as NativeButtonProps}
+        {...(otherProps as NativeButtonProps)}
         type={htmlType}
         className={classes}
         onClick={this.handleClick}
